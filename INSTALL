@@ -1,0 +1,27 @@
+Installation Instructions
+*************************
+
+Copyright (C) 1994-1996, 1999-2002, 2004-2013 Free Software Foundation,
+Inc.
+
+   Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.  This file is offered as-is,
+without warranty of any kind.
+
+CMake
+=====
+
+This repository is not yet integrated with libbitcoin's build system.
+
+For now, use the cmake build process:
+
+```
+cd builds/cmake
+cmake -DBUILD_SHARED_LIBS=true -DCMAKE_PREFIX_PATH=<path_to_libbitcoin_libs> -DCMAKE_INSTALL_PREFIX=<installation_prefix> -DBOOST_LIBRARYDIR=<path_to_your_boost_installation> .
+make
+make test
+```
+
+TODO (kp): Add `make install` instructions.
+
