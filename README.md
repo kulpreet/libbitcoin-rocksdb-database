@@ -1,4 +1,4 @@
-# Libbitcoin Database
+# Libbitcoin RocksDB Database
 
 *RocksDB Database for libbitcoin*
 
