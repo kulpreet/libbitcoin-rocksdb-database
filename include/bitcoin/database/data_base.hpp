@@ -22,7 +22,10 @@
 #include <cstddef>
 #include <functional>
 #include <bitcoin/system.hpp>
+#include <bitcoin/database/databases/transaction_database.hpp>
 #include "rocksdb/db.h"
+#include "rocksdb/utilities/transaction.h"
+#include "rocksdb/utilities/optimistic_transaction_db.h"
 
 namespace libbitcoin {
 namespace database {
@@ -31,6 +34,9 @@ namespace database {
 class data_base
 {
 public:
+    const std::string TRANSACTIONS_COLUMN_FAMILY = "transactions";
+    const std::string BLOCKS_COLUMN_FAMILY = "blocks";
+    const size_t CACHE_CAPACITY = 10000;
     typedef boost::filesystem::path path;
     typedef std::function<void(const system::code&)> result_handler;
 
@@ -42,7 +48,7 @@ public:
     /// Create and open all databases.
     bool create(const system::chain::block& genesis);
 
-    /// Open all databases.
+    /// Open existing rocksdb database. Returns false if it doesn't exist.
     bool open();
 
     /// Close all databases.
@@ -101,6 +107,12 @@ public:
     /// Add transaction payment to the payment index.
     system::code catalog(const system::chain::transaction& tx);
 
+    // Databases.
+    // ------------------------------------------------------------------------
+
+    // std::shared_ptr<block_database> blocks_;
+    std::shared_ptr<transaction_database> transactions_;
+
 private:
     // system::chain::transaction::list to_transactions(
     //     const block_result& result) const;
@@ -109,8 +121,13 @@ private:
     path directory_;
     rocksdb::DB* db_;
 
+    std::atomic<bool> closed_;
+
     const bool catalog_;
     const bool filter_;
+
+    // rocksdb column families for all databases
+    std::vector<rocksdb::ColumnFamilyHandle*> column_family_handles_;
 };
 
 } // namespace database

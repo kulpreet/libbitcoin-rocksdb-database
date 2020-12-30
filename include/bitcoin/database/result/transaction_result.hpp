@@ -23,7 +23,8 @@
 #include <cstdint>
 #include <bitcoin/system.hpp>
 #include <bitcoin/database/define.hpp>
-#include <bitcoin/database/result/inpoint_iterator.hpp>
+// TODO(kp) bring this back
+// #include <bitcoin/database/result/inpoint_iterator.hpp>
 
 namespace libbitcoin {
 namespace database {
@@ -80,9 +81,10 @@ public:
     /// The transaction, optionally including witness.
     system::chain::transaction transaction(bool witness=true) const;
 
-    /// Iterate over the input set.
-    inpoint_iterator begin() const;
-    inpoint_iterator end() const;
+    // TODO (kp) bring these back
+    // /// Iterate over the input set.
+    // inpoint_iterator begin() const;
+    // inpoint_iterator end() const;
 
 private:
     bool candidate_;

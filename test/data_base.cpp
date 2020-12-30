@@ -50,7 +50,7 @@ struct data_base_directory_setup_fixture
 
 BOOST_FIXTURE_TEST_SUITE(data_base_tests, data_base_directory_setup_fixture)
 
-BOOST_AUTO_TEST_CASE(data_base__create__instance__success)
+BOOST_AUTO_TEST_CASE(data_base__create__close_open_again__success)
 {
     std::cerr << file_path << std::endl;
     data_base instance(file_path, false, false);
@@ -62,5 +62,15 @@ BOOST_AUTO_TEST_CASE(data_base__create__instance__success)
     BOOST_CHECK(instance.open());
     BOOST_CHECK(instance.close());
 }
+
+// BOOST_AUTO_TEST_CASE(data_base__create__genesis_block_available__success)
+// {
+//     data_base instance(file_path, false, false);
+
+//     const auto bc_settings = bc::system::settings(config::settings::mainnet);
+//     BOOST_CHECK(instance.create(bc_settings.genesis_block));
+//     // TODO (kp) check block was added once get_block is ready.
+//     BOOST_CHECK(instance.close());
+// }
 
 BOOST_AUTO_TEST_SUITE_END()
