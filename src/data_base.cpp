@@ -42,7 +42,7 @@ data_base::create(const system::chain::block& genesis)
     rocksdb::Options options;
     options.create_if_missing = true;
     options.error_if_exists = true;
-    rocksdb::Status status = rocksdb::DB::Open(options, directory_.string(), &db_);
+    rocksdb::Status status = rocksdb::OptimisticTransactionDB::Open(options, directory_.string(), &db_);
     BITCOIN_ASSERT_MSG(status.ok(), "Failed to open optimistic transactions database");
 
     rocksdb::ColumnFamilyHandle *transactions_cf, *blocks_cf;
@@ -72,7 +72,7 @@ data_base::open()
             rocksdb::ColumnFamilyOptions()));
 
     rocksdb::Options options;
-    rocksdb::Status status = rocksdb::DB::Open(options, directory_.string(),
+    rocksdb::Status status = rocksdb::OptimisticTransactionDB::Open(options, directory_.string(),
         column_families, &column_family_handles_, &db_);
     if (!status.ok()) {
         return false;

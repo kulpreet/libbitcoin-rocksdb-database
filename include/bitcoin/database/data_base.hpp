@@ -119,7 +119,7 @@ private:
 
     // Path to db directory
     path directory_;
-    rocksdb::DB* db_;
+    rocksdb::OptimisticTransactionDB* db_;
 
     std::atomic<bool> closed_;
 

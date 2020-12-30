@@ -38,7 +38,7 @@ class BCD_API transaction_database
 {
 public:
     /// Construct the database.
-    transaction_database(rocksdb::DB* db_,
+    transaction_database(rocksdb::OptimisticTransactionDB* db_,
         rocksdb::ColumnFamilyHandle* handle_,
         size_t cache_capacity);
 
@@ -114,7 +114,7 @@ private:
     bool confirmize(const system::hash_digest& hash, size_t height, uint32_t median_time_past,
         size_t position);
 
-    std::shared_ptr<rocksdb::DB> db_;
+    std::shared_ptr<rocksdb::OptimisticTransactionDB> db_;
     rocksdb::ColumnFamilyHandle* handle_;
 
     // This is thread safe.
