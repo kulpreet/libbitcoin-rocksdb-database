@@ -22,6 +22,8 @@
 #include <cstddef>
 #include <functional>
 #include <bitcoin/system.hpp>
+#include <bitcoin/database/transaction_context.hpp>
+#include <bitcoin/database/databases/block_database.hpp>
 #include <bitcoin/database/databases/transaction_database.hpp>
 #include "rocksdb/db.h"
 #include "rocksdb/utilities/transaction.h"
@@ -57,6 +59,12 @@ public:
     /// Call close on destruct.
     ~data_base();
 
+    /// Database transaction interface
+    // ------------------------------------------------------------------------
+    std::shared_ptr<transaction_context> begin_transaction(
+        bool use_snapshot = false);
+    bool commit_transaction(std::shared_ptr<transaction_context> txn);
+
     /// Reader interfaces.
     // ------------------------------------------------------------------------
     // These are const to preclude write operations by public callers.
@@ -66,7 +74,8 @@ public:
 
     // INITCHAIN (genesis)
     /// Push the block through candidacy and confirmation, without indexing.
-    system::code push(const system::chain::block& block, size_t height=0,
+    system::code push(std::shared_ptr<transaction_context> context,
+        const system::chain::block& block, size_t height=0,
         uint32_t median_time_past=0);
 
     // HEADER ORGANIZER (reorganize)
@@ -110,8 +119,16 @@ public:
     // Databases.
     // ------------------------------------------------------------------------
 
-    // std::shared_ptr<block_database> blocks_;
+    std::shared_ptr<block_database> blocks_;
     std::shared_ptr<transaction_database> transactions_;
+
+    /// Reader interfaces.
+    // ------------------------------------------------------------------------
+    // These are const to preclude write operations by public callers.
+
+    const block_database& blocks() const;
+
+    const transaction_database& transactions() const;
 
 private:
     // system::chain::transaction::list to_transactions(
@@ -119,7 +136,8 @@ private:
 
     // Path to db directory
     path directory_;
-    rocksdb::OptimisticTransactionDB* db_;
+    rocksdb::OptimisticTransactionDB* dbp_;
+    std::shared_ptr<rocksdb::OptimisticTransactionDB> db_;
 
     std::atomic<bool> closed_;
 

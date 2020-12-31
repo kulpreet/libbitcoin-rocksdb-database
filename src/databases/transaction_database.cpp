@@ -39,7 +39,7 @@ static constexpr auto no_time = 0u;
 
 // Transactions uses a hash table index, O(1).
 transaction_database::transaction_database(
-    rocksdb::OptimisticTransactionDB* db_,
+    std::shared_ptr<rocksdb::OptimisticTransactionDB> db_,
     rocksdb::ColumnFamilyHandle* handle_,
     size_t cache_capacity)
   : db_(db_), handle_(handle_), cache_(cache_capacity)

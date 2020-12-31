@@ -38,7 +38,7 @@ class BCD_API transaction_database
 {
 public:
     /// Construct the database.
-    transaction_database(rocksdb::OptimisticTransactionDB* db_,
+    transaction_database(std::shared_ptr<rocksdb::OptimisticTransactionDB> db_,
         rocksdb::ColumnFamilyHandle* handle_,
         size_t cache_capacity);
 

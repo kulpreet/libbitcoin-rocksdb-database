@@ -63,14 +63,22 @@ BOOST_AUTO_TEST_CASE(data_base__create__close_open_again__success)
     BOOST_CHECK(instance.close());
 }
 
-// BOOST_AUTO_TEST_CASE(data_base__create__genesis_block_available__success)
-// {
-//     data_base instance(file_path, false, false);
+BOOST_AUTO_TEST_CASE(data_base__create__genesis_block_available__success)
+{
+    data_base instance(file_path, false, false);
 
-//     const auto bc_settings = bc::system::settings(config::settings::mainnet);
-//     BOOST_CHECK(instance.create(bc_settings.genesis_block));
-//     // TODO (kp) check block was added once get_block is ready.
-//     BOOST_CHECK(instance.close());
-// }
+    const auto bc_settings = bc::system::settings(config::settings::mainnet);
+    const chain::block& genesis = bc_settings.genesis_block;
+    const auto block_hash = genesis.hash();
+    BOOST_CHECK(instance.create(genesis));
+
+    // auto context = instance.begin_transaction();
+    // const auto result_by_hash = instance.blocks().get(context, block_hash);
+    // context->commit();
+    // BOOST_REQUIRE(result_by_hash);
+    // BOOST_REQUIRE(result_by_hash.hash() == block_hash);
+
+    BOOST_CHECK(instance.close());
+}
 
 BOOST_AUTO_TEST_SUITE_END()

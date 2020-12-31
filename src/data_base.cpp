@@ -42,22 +42,28 @@ data_base::create(const system::chain::block& genesis)
     rocksdb::Options options;
     options.create_if_missing = true;
     options.error_if_exists = true;
-    rocksdb::Status status = rocksdb::OptimisticTransactionDB::Open(options, directory_.string(), &db_);
+    // keep all column families consistent.
+    options.atomic_flush = true;
+    rocksdb::Status status = rocksdb::OptimisticTransactionDB::Open(options, directory_.string(), &dbp_);
     BITCOIN_ASSERT_MSG(status.ok(), "Failed to open optimistic transactions database");
+    db_ = std::shared_ptr<rocksdb::OptimisticTransactionDB>(dbp_);
 
     rocksdb::ColumnFamilyHandle *transactions_cf, *blocks_cf;
-    status = db_->CreateColumnFamily(rocksdb::ColumnFamilyOptions(),
+    status = dbp_->CreateColumnFamily(rocksdb::ColumnFamilyOptions(),
         TRANSACTIONS_COLUMN_FAMILY, &transactions_cf);
     BITCOIN_ASSERT_MSG(status.ok(), "Failed to create transactions column family");
     column_family_handles_.push_back(transactions_cf);
 
-    status = db_->CreateColumnFamily(rocksdb::ColumnFamilyOptions(),
+    status = dbp_->CreateColumnFamily(rocksdb::ColumnFamilyOptions(),
         BLOCKS_COLUMN_FAMILY, &blocks_cf);
     BITCOIN_ASSERT_MSG(status.ok(), "Failed to create blocks column family");
     column_family_handles_.push_back(blocks_cf);
 
     closed_ = false;
-    return push(genesis) == error::success;
+    auto context = std::make_shared<transaction_context>(db_);
+    context->begin();
+    return push(context, genesis) == error::success;
+    context->commit();
 }
 
 bool
@@ -73,15 +79,15 @@ data_base::open()
 
     rocksdb::Options options;
     rocksdb::Status status = rocksdb::OptimisticTransactionDB::Open(options, directory_.string(),
-        column_families, &column_family_handles_, &db_);
+        column_families, &column_family_handles_, &dbp_);
     if (!status.ok()) {
         return false;
     }
 
     transactions_ = std::make_shared<transaction_database>(db_,
         column_family_handles_[1], CACHE_CAPACITY);
-    // blocks_ = std::make_shared<blocks_database>(db_,
-    //     std::shared_ptr<rocksdb::ColumnFamilyHandle*>(column_family_handles_[2]));
+    blocks_ = std::make_shared<block_database>(db_,
+        column_family_handles_[2]);
 
     closed_ = false;
     return true;
@@ -94,10 +100,10 @@ data_base::close()
         return false;
     }
     for (auto handle : column_family_handles_) {
-        auto s = db_->DestroyColumnFamilyHandle(handle);
+        auto s = dbp_->DestroyColumnFamilyHandle(handle);
         BITCOIN_ASSERT_MSG(s.ok(), "Failed to close rocks db");
     }
-    auto status = db_->Close();
+    auto status = dbp_->Close();
     if (!status.ok()){
         return false;
     }
@@ -105,21 +111,40 @@ data_base::close()
     return true;
 }
 
+std::shared_ptr<transaction_context>
+data_base::begin_transaction(bool use_snapshot)
+{
+    auto context = std::make_shared<transaction_context>(db_);
+    context->begin(use_snapshot);
+    return context;
+}
+
+bool
+data_base::commit_transaction(std::shared_ptr<transaction_context> context)
+{
+    return context->commit();
+}
+
 system::code
-data_base::push(const system::chain::block& block, size_t height,
+data_base::push(std::shared_ptr<transaction_context> context,
+    const system::chain::block& block, size_t height,
     uint32_t median_time_past)
 {
-    // start rocksdb batch as RAII. So it transaction commit on
-    // function exit.
-    // 1. store block header
-    // 2. mark block as confirmed, index in rockdb?
-    // 3. store all block transactions
-    // 4. link block transaction to block as it is a confirmed block
-    // 5. Confirm all transactions. State transition via candidate is
-    // not required.
-    // 6. Mark block as valid, as it is presumed valid.
-    // 7. mark block as valid, index rockdb?
     return error::success;
+}
+
+// Reader interfaces.
+// ----------------------------------------------------------------------------
+// public
+
+const block_database& data_base::blocks() const
+{
+    return *blocks_;
+}
+
+const transaction_database& data_base::transactions() const
+{
+    return *transactions_;
 }
 
 } // namespace database
