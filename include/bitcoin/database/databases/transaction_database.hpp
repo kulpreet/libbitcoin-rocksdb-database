@@ -23,6 +23,7 @@
 #include <boost/filesystem.hpp>
 #include <bitcoin/system.hpp>
 #include <bitcoin/database/define.hpp>
+#include <bitcoin/database/transaction_context.hpp>
 #include <bitcoin/database/result/transaction_result.hpp>
 #include <bitcoin/database/unspent_outputs.hpp>
 #include "rocksdb/db.h"
@@ -46,45 +47,56 @@ public:
     //-------------------------------------------------------------------------
 
     /// Fetch transaction by its hash.
-    transaction_result get(const system::hash_digest& hash) const;
+    transaction_result get(std::shared_ptr<transaction_context> context,
+        const system::hash_digest& hash) const;
 
     /// Populate tx metadata for the given block context.
-    void get_block_metadata(const system::chain::transaction& tx,
+    void get_block_metadata(std::shared_ptr<transaction_context> context,
+        const system::chain::transaction& tx,
         uint32_t forks, size_t fork_height) const;
 
     /// Populate tx metadata for the given transaction pool context.
-    void get_pool_metadata(const system::chain::transaction& tx,
+    void get_pool_metadata(std::shared_ptr<transaction_context> context,
+        const system::chain::transaction& tx,
         uint32_t forks) const;
 
     /// Populate output metadata for the specified point and fork point.
-    bool get_output(const system::chain::output_point& point,
+    bool get_output(std::shared_ptr<transaction_context> context,
+        const system::chain::output_point& point,
         size_t fork_height) const;
 
     // Writers.
     // ------------------------------------------------------------------------
 
     /// Store a transaction not associated with a block.
-    bool store(const system::chain::transaction& tx, uint32_t forks);
+    bool store(std::shared_ptr<transaction_context> context,
+        const system::chain::transaction& tx, uint32_t forks);
 
     /// Store a set of transactions (potentially from an unconfirmed block).
-    bool store(const system::chain::transaction::list& transactions);
+    bool store(std::shared_ptr<transaction_context> context,
+        const system::chain::transaction::list& transactions);
 
     /// Mark outputs spent by the candidate tx.
-    bool candidate(const system::hash_digest& hash);
+    bool candidate(std::shared_ptr<transaction_context> context,
+        const system::hash_digest& hash);
 
     /// Unmark outputs formerly spent by the candidate tx.
-    bool uncandidate(const system::hash_digest& hash);
+    bool uncandidate(std::shared_ptr<transaction_context> context,
+        const system::hash_digest& hash);
 
     /// Promote the transaction to confirmed (uncached).
-    bool confirm(const system::hash_digest& hash, size_t height,
+    bool confirm(std::shared_ptr<transaction_context> context,
+        const system::hash_digest& hash, size_t height,
         uint32_t median_time_past, size_t position);
 
     /// Promote the set of transactions associated with a block to confirmed.
-    bool confirm(const system::chain::block& block, size_t height,
+    bool confirm(std::shared_ptr<transaction_context> context,
+        const system::chain::block& block, size_t height,
         uint32_t median_time_past);
 
     /// Demote the set of transactions associated with a block to pooled.
-    bool unconfirm(const system::chain::block& block);
+    bool unconfirm(std::shared_ptr<transaction_context> context,
+        const system::chain::block& block);
 
 private:
     typedef system::hash_digest key_type;

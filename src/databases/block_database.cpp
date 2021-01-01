@@ -35,9 +35,24 @@ using namespace bc::system;
 using namespace bc::system::chain;
 using namespace bc::system::machine;
 
+static const auto header_size = header::satoshi_fixed_size();
+static constexpr auto median_time_past_size = sizeof(uint32_t);
+static constexpr auto height_size = sizeof(uint32_t);
+static constexpr auto state_size = sizeof(uint8_t);
+static constexpr auto checksum_size = sizeof(uint32_t);
+
+static const auto height_offset = header_size + median_time_past_size;
+static const auto state_offset = height_offset + height_size;
+static const auto checksum_offset = state_offset + state_size;
+
+// Total size of block header and metadata storage without neutrino filter offset.
+static const auto base_block_size = header_size + median_time_past_size +
+    height_size + state_size + checksum_size;
+
 block_database::block_database(std::shared_ptr<rocksdb::OptimisticTransactionDB> db_,
-    rocksdb::ColumnFamilyHandle* handle_)
-  : db_(db_), handle_(handle_)
+    rocksdb::ColumnFamilyHandle* block_handle_,
+    rocksdb::ColumnFamilyHandle* block_transactions_handle_)
+  : db_(db_), block_handle_(block_handle_), block_transactions_handle_(block_transactions_handle_)
 {
 }
 
@@ -49,6 +64,35 @@ block_database::block_database(std::shared_ptr<rocksdb::OptimisticTransactionDB>
 //     context->txn()->Get(rocksdb::ReadOptions(), handle_, hash, &value);
 // }
 
+
+void block_database::store(std::shared_ptr<transaction_context> context,
+    const system::chain::header& header, size_t height,
+    uint32_t median_time_past)
+{
+    static constexpr auto no_checksum = 0u;
+
+    // New headers are only accepted in the candidate state.
+    store(context, header, height, median_time_past, no_checksum, block_state::candidate);
+}
+
+void block_database::store(std::shared_ptr<transaction_context> context,
+    const system::chain::header& header, size_t height,
+    uint32_t median_time_past, uint32_t checksum, uint8_t state)
+{
+    BITCOIN_ASSERT(height <= max_uint32);
+    BITCOIN_ASSERT(!header.metadata.exists);
+
+    const auto writer = [&](byte_serializer& serial)
+    {
+        header.to_data(serial, false);
+        serial.write_4_bytes_little_endian(median_time_past);
+        serial.write_4_bytes_little_endian(static_cast<uint32_t>(height));
+        serial.write_byte(state);
+        serial.write_4_bytes_little_endian(checksum);
+    };
+    void* value = malloc(base_block_size);
+    //context->txn()->Put(block_handle_, header.hash(), value);
+}
 
 } // namespace database
 } // namespace libbitcoin

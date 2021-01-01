@@ -41,47 +41,61 @@ class BCD_API block_database
 public:
     /// Construct the database.
     block_database(std::shared_ptr<rocksdb::OptimisticTransactionDB> db_,
-        rocksdb::ColumnFamilyHandle* handle_);
+        rocksdb::ColumnFamilyHandle* block_handle_,
+        rocksdb::ColumnFamilyHandle* block_transactions_handle_);
 
     // Queries.
     //-------------------------------------------------------------------------
 
     /// The height of the highest candidate|confirmed block.
-    bool top(size_t& out_height, bool candidate) const;
+    bool top(std::shared_ptr<transaction_context> context,
+        size_t& out_height, bool candidate) const;
 
     /// Fetch block by block|header index height.
-    block_result get(size_t height, bool candidate) const;
+    block_result get(std::shared_ptr<transaction_context> context,
+        size_t height, bool candidate) const;
 
     /// Fetch block by hash.
     block_result get(std::shared_ptr<transaction_context> context,
         const system::hash_digest& hash) const;
 
     /// Populate header metadata for the given header.
-    void get_header_metadata(const system::chain::header& header) const;
+    void get_header_metadata(std::shared_ptr<transaction_context> context,
+        const system::chain::header& header) const;
 
     // Writers.
     // ------------------------------------------------------------------------
 
     /// Store header, validated at height, candidate, pending (but unindexed).
-    void store(const system::chain::header& header, size_t height,
+    void store(std::shared_ptr<transaction_context> context,
+        const system::chain::header& header, size_t height,
         uint32_t median_time_past);
 
     /// Populate pooled block transaction references, state is unchanged.
-    bool update_transactions(const system::chain::block& block);
+    bool update_transactions(std::shared_ptr<transaction_context> context,
+        const system::chain::block& block);
 
     /// Promote pooled block to valid|invalid and set code.
-    bool validate(const system::hash_digest& hash, const system::code& error);
+    bool validate(std::shared_ptr<transaction_context> context,
+        const system::hash_digest& hash, const system::code& error);
 
     /// Promote pooled|candidate block to candidate|confirmed respectively.
-    bool promote(const system::hash_digest& hash, size_t height, bool candidate);
+    bool promote(std::shared_ptr<transaction_context> context,
+        const system::hash_digest& hash, size_t height, bool candidate);
 
     /// Demote candidate|confirmed header to pooled|pooled (not candidate).
-    bool demote(const system::hash_digest& hash, size_t height,
+    bool demote(std::shared_ptr<transaction_context> context,
+        const system::hash_digest& hash, size_t height,
         bool candidate);
 
 private:
+    void store(std::shared_ptr<transaction_context> context,
+        const system::chain::header& header, size_t height,
+        uint32_t median_time_past, uint32_t checksum, uint8_t status);
+
     std::shared_ptr<rocksdb::OptimisticTransactionDB> db_;
-    rocksdb::ColumnFamilyHandle* handle_;
+    rocksdb::ColumnFamilyHandle* block_handle_;
+    rocksdb::ColumnFamilyHandle* block_transactions_handle_;
 };
 
 } // namespace database

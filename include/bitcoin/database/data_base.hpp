@@ -38,6 +38,7 @@ class data_base
 public:
     const std::string TRANSACTIONS_COLUMN_FAMILY = "transactions";
     const std::string BLOCKS_COLUMN_FAMILY = "blocks";
+    const std::string BLOCK_TRANSACTIONS_COLUMN_FAMILY = "block_transactions";
     const size_t CACHE_CAPACITY = 10000;
     typedef boost::filesystem::path path;
     typedef std::function<void(const system::code&)> result_handler;

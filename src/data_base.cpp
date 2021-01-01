@@ -59,6 +59,11 @@ data_base::create(const system::chain::block& genesis)
     BITCOIN_ASSERT_MSG(status.ok(), "Failed to create blocks column family");
     column_family_handles_.push_back(blocks_cf);
 
+    status = dbp_->CreateColumnFamily(rocksdb::ColumnFamilyOptions(),
+        BLOCK_TRANSACTIONS_COLUMN_FAMILY, &blocks_cf);
+    BITCOIN_ASSERT_MSG(status.ok(), "Failed to create block transactions column family");
+    column_family_handles_.push_back(blocks_cf);
+
     closed_ = false;
     auto context = std::make_shared<transaction_context>(db_);
     context->begin();
@@ -76,18 +81,21 @@ data_base::open()
             rocksdb::ColumnFamilyOptions()));
     column_families.push_back(rocksdb::ColumnFamilyDescriptor(BLOCKS_COLUMN_FAMILY,
             rocksdb::ColumnFamilyOptions()));
+    column_families.push_back(rocksdb::ColumnFamilyDescriptor(BLOCK_TRANSACTIONS_COLUMN_FAMILY,
+            rocksdb::ColumnFamilyOptions()));
 
     rocksdb::Options options;
     rocksdb::Status status = rocksdb::OptimisticTransactionDB::Open(options, directory_.string(),
         column_families, &column_family_handles_, &dbp_);
     if (!status.ok()) {
+        std::cerr << status.ToString() << std::endl;
         return false;
     }
 
     transactions_ = std::make_shared<transaction_database>(db_,
         column_family_handles_[1], CACHE_CAPACITY);
     blocks_ = std::make_shared<block_database>(db_,
-        column_family_handles_[2]);
+        column_family_handles_[2], column_family_handles_[3]);
 
     closed_ = false;
     return true;
@@ -130,6 +138,40 @@ data_base::push(std::shared_ptr<transaction_context> context,
     const system::chain::block& block, size_t height,
     uint32_t median_time_past)
 {
+    // Store the header.
+    blocks_->store(context, block.header(), height, median_time_past);
+
+    // // Push header reference onto the candidate index and set candidate state.
+    // if (!blocks_->promote(context, block.hash(), height, true))
+    //     return error::operation_failed;
+
+    // // Store any missing txs as unconfirmed, set tx link metadata for all.
+    // if (!transactions_->store(context, block.transactions()))
+    //     return error::operation_failed;
+
+    // // Populate transaction references from link metadata.
+    // if (!blocks_->update_transactions(context, block))
+    //     return error::operation_failed;
+
+    // // Confirm all transactions (candidate state transition not requried).
+    // if (!transactions_->confirm(context, block, height, median_time_past))
+    //     return error::operation_failed;
+
+    // // Promote validation state to valid (presumed valid).
+    // if (!blocks_->validate(context, block.hash(), error::success))
+    //     return error::operation_failed;
+
+    // // TODO (kp) Bring these back when filter and catalog are supported
+    // // if ((ec = filter(block)))
+    // //     return ec;
+
+    // // if ((ec = catalog(block)))
+    // //     return ec;
+
+    // // Push header reference onto the confirmed index and set confirmed state.
+    // if (!blocks_->promote(context, block.hash(), height, false))
+    //     return error::operation_failed;
+
     return error::success;
 }
 
